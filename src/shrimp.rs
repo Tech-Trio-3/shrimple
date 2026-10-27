@@ -11,6 +11,8 @@ pub const ANGER_DELAY: Duration = Duration::from_secs(60);
 pub const ANGER_RAMP: Duration = Duration::from_secs(9 * 60);
 /// Number of distinct anger levels (level `MAX_ANGER` is full fury).
 pub const MAX_ANGER: u8 = 6;
+/// Anger level at which the seaweed behind the shrimp bursts into flames.
+pub const FLAME_ANGER: u8 = 3;
 /// How long the shrimp looks pleased after being acknowledged.
 pub const HAPPY_TIME: Duration = Duration::from_secs(3);
 
@@ -31,6 +33,8 @@ pub struct Look {
     pub shake: i8,
     /// Little sparkle shown right after the shrimp is acknowledged.
     pub sparkle: bool,
+    /// Which of the two flame frames to draw (only when on fire).
+    pub flicker: bool,
 }
 
 impl Look {
@@ -39,6 +43,7 @@ impl Look {
         anger: 0,
         shake: 0,
         sparkle: false,
+        flicker: false,
     };
 }
 
@@ -131,11 +136,14 @@ impl Shrimp {
         } else {
             0
         };
+        // The flames dance twice a second.
+        let flicker = anger >= FLAME_ANGER && (overdue.as_millis() / 500) % 2 == 1;
         Look {
             pose,
             anger,
             shake,
             sparkle: false,
+            flicker,
         }
     }
 
