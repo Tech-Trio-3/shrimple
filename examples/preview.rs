@@ -55,11 +55,12 @@ fn main() {
             for y in 0..CELL {
                 for x in 0..CELL {
                     let [r, g, b, a] = pixels[y * CELL + x];
-                    if a == 0 {
-                        continue;
-                    }
                     let at = ((t * row_height + GAP + y) * width + GAP + i * (CELL + GAP) + x) * 4;
-                    img[at..at + 4].copy_from_slice(&[r, g, b, 255]);
+                    for (dst, src) in img[at..at + 3].iter_mut().zip([r, g, b]) {
+                        let blended =
+                            (src as u32 * a as u32 + *dst as u32 * (255 - a as u32)) / 255;
+                        *dst = blended as u8;
+                    }
                 }
             }
         }

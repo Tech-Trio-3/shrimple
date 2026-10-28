@@ -71,6 +71,7 @@ const CURLED: [&str; ART_SIZE] = [
 //   d  sand               p  pebble
 //   g  seaweed            k  seaweed shadow
 //   r  flame edge         f  flame           y  flame core
+//   v  shallow water      u  deep water      c  bubble
 const SEABED: [&str; ART_SIZE] = [
     "................",
     "................",
@@ -168,7 +169,15 @@ const PALETTE: &[(char, Rgba, Rgba)] = &[
     ('r', [214, 52, 20, 255], [214, 52, 20, 255]),
     ('f', [255, 140, 24, 255], [255, 140, 24, 255]),
     ('y', [255, 226, 80, 255], [255, 226, 80, 255]),
+    // Faint, see-through water that warms up as the shrimp boils over.
+    ('v', [120, 200, 240, 70], [255, 150, 90, 70]),
+    ('u', [60, 140, 220, 90], [220, 80, 50, 90]),
+    ('c', [220, 245, 255, 200], [255, 220, 180, 200]),
 ];
+
+/// Where the water turns deep, and where the bubbles float.
+const DEEP_WATER_ROW: usize = 8;
+const BUBBLES: [(usize, usize); 2] = [(1, 7), (0, 9)];
 
 fn color(c: char, anger: f32) -> Rgba {
     let Some(&(_, calm, mad)) = PALETTE.iter().find(|(k, _, _)| *k == c) else {
@@ -226,6 +235,15 @@ fn compose(look: Look) -> [[char; ART_SIZE]; ART_SIZE] {
     } else {
         grid_of(&SEABED)
     };
+    for (y, row) in grid.iter_mut().enumerate() {
+        let water = if y < DEEP_WATER_ROW { 'v' } else { 'u' };
+        for c in row.iter_mut().filter(|c| **c == '.') {
+            *c = water;
+        }
+    }
+    for (x, y) in BUBBLES {
+        grid[y][x] = 'c';
+    }
     for (row, shrimp_row) in grid.iter_mut().zip(&shrimp) {
         for (c, &s) in row.iter_mut().zip(shrimp_row) {
             if s != '.' {
