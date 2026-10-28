@@ -1,6 +1,7 @@
-//! The pop-out: once the shrimp gets mad, a bigger copy of it climbs out of the
-//! tray and sits in the corner of the screen, growing as it gets angrier,
-//! until you sit up straight. It never takes focus or shows up in Alt-Tab.
+//! The pop-out: once the seaweed catches fire, a bigger copy of the shrimp
+//! climbs out of the tray and sits in the corner of the screen, growing as it
+//! gets angrier, until you sit up straight (or it stays there all the time, if
+//! you ask it to). It never takes focus or shows up in Alt-Tab.
 
 use std::ptr::{null, null_mut};
 

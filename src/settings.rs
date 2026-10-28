@@ -9,6 +9,7 @@ use windows_sys::Win32::System::Registry::{
 const APP_KEY: &str = r"Software\Shrimple";
 const INTERVAL_VALUE: &str = "IntervalMinutes";
 const POP_OUT_VALUE: &str = "PopOut";
+const ALWAYS_SHOWN_VALUE: &str = "PopOutAlways";
 const RUN_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Run";
 const RUN_VALUE: &str = "Shrimple";
 
@@ -35,6 +36,15 @@ pub fn pops_out() -> bool {
 
 pub fn set_pops_out(enabled: bool) {
     write_dword(POP_OUT_VALUE, enabled as u32);
+}
+
+/// Whether the big shrimp stays on screen all the time, not just when ignored (off by default).
+pub fn always_shown() -> bool {
+    read_dword(ALWAYS_SHOWN_VALUE).is_some_and(|v| v != 0)
+}
+
+pub fn set_always_shown(enabled: bool) {
+    write_dword(ALWAYS_SHOWN_VALUE, enabled as u32);
 }
 
 fn read_dword(name: &str) -> Option<u32> {

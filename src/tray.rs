@@ -49,6 +49,7 @@ const CMD_PAUSE: usize = 101;
 const CMD_AUTOSTART: usize = 102;
 const CMD_QUIT: usize = 103;
 const CMD_POP_OUT: usize = 104;
+const CMD_ALWAYS_SHOWN: usize = 105;
 const CMD_INTERVAL_BASE: usize = 200;
 
 // Session-change codes for WM_WTSSESSION_CHANGE and power events for WM_POWERBROADCAST.
@@ -67,6 +68,8 @@ struct App {
     /// The big on-screen shrimp that appears when you ignore the tray one.
     popout: Option<Popout>,
     pops_out: bool,
+    /// Keep the big shrimp on screen even while it's calm.
+    always_shown: bool,
 }
 
 thread_local! {
@@ -136,6 +139,7 @@ pub fn run() {
             shown_tip: String::new(),
             popout: Popout::new(hwnd, instance),
             pops_out: settings::pops_out(),
+            always_shown: settings::always_shown(),
         };
         APP.with(|slot| *slot.borrow_mut() = Some(app));
 
@@ -283,7 +287,8 @@ impl App {
         }
 
         if let Some(popout) = &mut self.popout {
-            if self.pops_out && self.shrimp.wants_attention(now) && !popout::screen_is_busy() {
+            let wanted = self.always_shown || (self.pops_out && self.shrimp.wants_attention(now));
+            if wanted && !popout::screen_is_busy() {
                 popout.show(look);
             } else {
                 popout.hide();
@@ -341,6 +346,13 @@ impl App {
                 CMD_POP_OUT,
                 "Pop out when ignored",
             );
+            let always = if self.always_shown { MF_CHECKED } else { 0 };
+            append(
+                menu,
+                MF_STRING | always,
+                CMD_ALWAYS_SHOWN,
+                "Always show on screen",
+            );
             let autostart = if settings::starts_with_windows() {
                 MF_CHECKED
             } else {
@@ -366,6 +378,10 @@ impl App {
             CMD_POP_OUT => {
                 self.pops_out = !self.pops_out;
                 settings::set_pops_out(self.pops_out);
+            }
+            CMD_ALWAYS_SHOWN => {
+                self.always_shown = !self.always_shown;
+                settings::set_always_shown(self.always_shown);
             }
             CMD_AUTOSTART => settings::set_starts_with_windows(!settings::starts_with_windows()),
             CMD_QUIT => unsafe {
