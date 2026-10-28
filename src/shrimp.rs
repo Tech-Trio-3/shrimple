@@ -3,9 +3,9 @@
 
 use std::time::{Duration, Instant};
 
-/// Once a check is due, the shrimp slouches, then fully curls up after this long.
-pub const CURL_DELAY: Duration = Duration::from_secs(20);
-/// How long the shrimp waits, curled up, before it starts getting annoyed.
+/// Once a check is due, the shrimp looks doubtful, then turns suspicious after this long.
+pub const SUSPICIOUS_DELAY: Duration = Duration::from_secs(20);
+/// How long the shrimp waits before it starts getting annoyed.
 pub const ANGER_DELAY: Duration = Duration::from_secs(60);
 /// How long it takes to go from mildly annoyed to absolutely furious.
 pub const ANGER_RAMP: Duration = Duration::from_secs(9 * 60);
@@ -19,8 +19,8 @@ pub const HAPPY_TIME: Duration = Duration::from_secs(3);
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Pose {
     Upright,
-    Slouch,
-    Curled,
+    Doubtful,
+    Suspicious,
 }
 
 /// Everything needed to draw one frame of the shrimp.
@@ -118,10 +118,10 @@ impl Shrimp {
             };
         };
 
-        let pose = if overdue < CURL_DELAY {
-            Pose::Slouch
+        let pose = if overdue < SUSPICIOUS_DELAY {
+            Pose::Doubtful
         } else {
-            Pose::Curled
+            Pose::Suspicious
         };
         let anger = match overdue.checked_sub(ANGER_DELAY) {
             None => 0,
@@ -195,12 +195,12 @@ mod tests {
     }
 
     #[test]
-    fn curls_then_gets_angry() {
+    fn doubts_then_gets_angry() {
         let (s, t0) = setup();
         let due = t0 + 20 * MIN;
-        assert_eq!(s.look(due).pose, Pose::Slouch);
+        assert_eq!(s.look(due).pose, Pose::Doubtful);
         assert_eq!(s.look(due).anger, 0);
-        assert_eq!(s.look(due + CURL_DELAY).pose, Pose::Curled);
+        assert_eq!(s.look(due + SUSPICIOUS_DELAY).pose, Pose::Suspicious);
         assert_eq!(s.look(due + ANGER_DELAY).anger, 1);
         let mut last = 0;
         for secs in (60..=1200).step_by(10) {

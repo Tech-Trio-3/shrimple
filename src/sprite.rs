@@ -9,61 +9,84 @@ pub const ART_SIZE: usize = 16;
 //   .  transparent        o  outline           b  body
 //   h  highlight          s  shell shading     l  legs
 //   a  antennae           e  eye               w  eye shine
+//   m  blush              t  tail fan
 const UPRIGHT: [&str; ART_SIZE] = [
-    "..a........a....",
-    "...a......a.....",
-    "....a....a......",
-    ".....ooooo......",
-    ".oooobbbbbo.....",
-    "...owebbbbho....",
-    "...oeebbbbho....",
-    "...obbbbbbbo....",
-    "....osssssso....",
-    "...lobbbbbho....",
-    "....ossssso.....",
-    "...lobbbbho.....",
-    "....osssso......",
-    ".....obbo.......",
-    "....osooso......",
-    "...osso.osso....",
-];
-
-const SLOUCH: [&str; ART_SIZE] = [
-    "................",
-    ".a..............",
-    "..a...ooooo.....",
-    "...aoobbbbboo...",
+    "...a........a...",
+    "....a......a....",
+    ".....a....a.....",
+    "....oooooooo....",
+    "...obbbbbbbbho..",
+    "..obbbbbbbbbbho.",
+    "..owebbbbbwebho.",
+    "..oeebbbbbeebbo.",
+    "..ombbbebbbbmbo.",
     "...obbbbbbbbbo..",
-    ".oobbbbbbsbbho..",
-    "..owebbbossbbho.",
-    "..oeebbo..osbho.",
-    "...ooooo..osbbo.",
-    "....l.l..osbbho.",
-    ".........osbbo..",
-    "........osbbbo..",
-    ".......osbbbo...",
-    ".......obbbo....",
-    "......osooso....",
-    ".....osso.osso..",
+    "....oossssssoo..",
+    "...l.obbbbhho...",
+    "....losssssol...",
+    ".....obbbbo.....",
+    "....otooooto....",
+    "...ottto.ottto..",
 ];
 
-const CURLED: [&str; ART_SIZE] = [
-    "................",
-    "................",
-    "................",
-    "..a.............",
-    "...a..ooooo.....",
-    "....oobbbbboo...",
-    ".oooobbbbbsbbo..",
-    "..owebbbboosbho.",
-    "..oeebbboo.osbho",
-    "...ooooo...osbbo",
-    "....l.l...osbbho",
-    "..oo....ooosbbo.",
-    ".osso.oosbbbbo..",
-    ".ossssobbbbboo..",
-    "..oooooooooo....",
-    "................",
+/// Posture check due: a skeptical side-eye, as if it doesn't quite believe you.
+const DOUBTFUL: [&str; ART_SIZE] = [
+    "...a.....a......",
+    "....a.....a.....",
+    ".....a....a.....",
+    "....oooooooo....",
+    "...obbbbbbbbho..",
+    "..owebbbbbbbbho.",
+    "..owebbbbboobho.",
+    "..oeebbbbbwebbo.",
+    "..ombbbbboobmbo.",
+    "...obbbbbbbbbo..",
+    "....oossssssoo..",
+    "...l.obbbbhho...",
+    "....losssssol...",
+    ".....obbbbo.....",
+    "....otooooto....",
+    "...ottto.ottto..",
+];
+
+/// Still waiting: arms crossed, eyes narrowed.
+const SUSPICIOUS: [&str; ART_SIZE] = [
+    "...a........a...",
+    "....a......a....",
+    ".....a....a.....",
+    "....oooooooo....",
+    "...obbbbbbbbho..",
+    "..obbbbbbbbbbho.",
+    "..ooobbbbboobho.",
+    "..owebbbbbwebbo.",
+    "..ombbooobbbmbo.",
+    "...obbbbbbbbbo..",
+    "....oossssssoo..",
+    "...obbbohhhho...",
+    "....ossssso.....",
+    ".....obbbbo.....",
+    "....otooooto....",
+    "...ottto.ottto..",
+];
+
+/// Suspicion turned to anger: same crossed arms, angry brows and a squint.
+const FUMING: [&str; ART_SIZE] = [
+    "...a........a...",
+    "....a......a....",
+    ".....a....a.....",
+    "....oooooooo....",
+    "...oobbbbbobho..",
+    "..obbobbbobbbho.",
+    "..obwebbbewbbho.",
+    "..obbbbbbbbbbbo.",
+    "..ombbooobbbmbo.",
+    "...obbbbbbbbbo..",
+    "....oossssssoo..",
+    "...obbbohhhho...",
+    "....ossssso.....",
+    ".....obbbbo.....",
+    "....otooooto....",
+    "...ottto.ottto..",
 ];
 
 // The world behind the shrimp, so it stands out against any taskbar. The top
@@ -139,6 +162,15 @@ const VEIN: [&str; 5] = [
     ".x.x.",
 ];
 
+/// Question mark, drawn in the top-right corner when a posture check is due.
+const QUESTION: [&str; 5] = [
+    "..qqq", //
+    "....q", //
+    "...q.", //
+    ".....", //
+    "...q.",
+];
+
 /// Sparkle, drawn in the top-right corner right after being acknowledged.
 const SPARKLE: [&str; 5] = [
     "..*..", //
@@ -160,6 +192,9 @@ const PALETTE: &[(char, Rgba, Rgba)] = &[
     ('a', [150, 62, 52, 255], [120, 18, 18, 255]),
     ('e', [24, 12, 12, 255], [24, 6, 6, 255]),
     ('w', [255, 255, 255, 255], [255, 220, 80, 255]),
+    ('m', [255, 110, 130, 255], [200, 20, 40, 255]),
+    ('t', [255, 176, 140, 255], [240, 70, 50, 255]),
+    ('q', [70, 120, 230, 255], [70, 120, 230, 255]),
     ('x', [235, 24, 24, 255], [235, 24, 24, 255]),
     ('*', [255, 236, 120, 255], [255, 236, 120, 255]),
     ('d', [222, 184, 112, 255], [92, 70, 58, 255]),
@@ -204,19 +239,11 @@ fn grid_of(art: &[&str; ART_SIZE]) -> [[char; ART_SIZE]; ART_SIZE] {
 fn compose(look: Look) -> [[char; ART_SIZE]; ART_SIZE] {
     let art = match look.pose {
         Pose::Upright => &UPRIGHT,
-        Pose::Slouch => &SLOUCH,
-        Pose::Curled => &CURLED,
+        Pose::Doubtful => &DOUBTFUL,
+        Pose::Suspicious if look.anger >= 2 => &FUMING,
+        Pose::Suspicious => &SUSPICIOUS,
     };
     let mut shrimp = grid_of(art);
-
-    if look.anger >= 2 {
-        // Angry glare: the top half of the eye gets a heavy lid.
-        if let Some((wx, wy)) = find(&shrimp, 'w') {
-            shrimp[wy][wx] = 'o';
-            shrimp[wy][wx + 1] = 'o';
-            shrimp[wy + 1][wx] = 'w';
-        }
-    }
 
     // Only the shrimp hops; the scenery stays put.
     let shift = (look.shake.unsigned_abs() as usize).min(ART_SIZE);
@@ -256,6 +283,8 @@ fn compose(look: Look) -> [[char; ART_SIZE]; ART_SIZE] {
         Some(&SPARKLE)
     } else if look.anger >= MAX_ANGER - 2 {
         Some(&VEIN)
+    } else if look.pose == Pose::Doubtful {
+        Some(&QUESTION)
     } else {
         None
     };
@@ -269,12 +298,6 @@ fn compose(look: Look) -> [[char; ART_SIZE]; ART_SIZE] {
         }
     }
     grid
-}
-
-fn find(grid: &[[char; ART_SIZE]; ART_SIZE], c: char) -> Option<(usize, usize)> {
-    (0..ART_SIZE)
-        .flat_map(|y| (0..ART_SIZE).map(move |x| (x, y)))
-        .find(|&(x, y)| grid[y][x] == c)
 }
 
 /// Renders the shrimp as top-down, straight-alpha RGBA pixels at `size`x`size`.
@@ -298,7 +321,15 @@ mod tests {
 
     #[test]
     fn art_is_well_formed() {
-        for art in [&UPRIGHT, &SLOUCH, &CURLED, &SEABED, &FLAMES[0], &FLAMES[1]] {
+        for art in [
+            &UPRIGHT,
+            &DOUBTFUL,
+            &SUSPICIOUS,
+            &FUMING,
+            &SEABED,
+            &FLAMES[0],
+            &FLAMES[1],
+        ] {
             for row in art.iter() {
                 assert_eq!(row.chars().count(), ART_SIZE, "{row:?}");
                 for c in row.chars() {
@@ -306,14 +337,14 @@ mod tests {
                 }
             }
         }
-        for art in [&UPRIGHT, &SLOUCH, &CURLED] {
+        for art in [&UPRIGHT, &DOUBTFUL, &SUSPICIOUS, &FUMING] {
             assert!(art.concat().contains('w'), "every pose needs an eye");
         }
     }
 
     #[test]
     fn renders_every_look_at_common_sizes() {
-        for pose in [Pose::Upright, Pose::Slouch, Pose::Curled] {
+        for pose in [Pose::Upright, Pose::Doubtful, Pose::Suspicious] {
             for anger in 0..=MAX_ANGER {
                 for (shake, flicker) in [(0, false), (1, true)] {
                     let look = Look {
