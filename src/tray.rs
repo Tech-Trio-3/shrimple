@@ -28,11 +28,12 @@ use windows_sys::Win32::UI::Shell::{
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::*;
 
+use crate::popout::{self, Popout};
 use crate::settings::{self, wide};
 use crate::shrimp::{Look, Shrimp};
 use crate::sprite;
 
-const WM_TRAY: u32 = WM_APP + 1;
+pub const WM_TRAY: u32 = WM_APP + 1;
 const TICK_TIMER: usize = 1;
 const TICK_MS: u32 = 500;
 const ICON_ID: u32 = 1;
@@ -47,6 +48,7 @@ const CMD_ACK: usize = 100;
 const CMD_PAUSE: usize = 101;
 const CMD_AUTOSTART: usize = 102;
 const CMD_QUIT: usize = 103;
+const CMD_POP_OUT: usize = 104;
 const CMD_INTERVAL_BASE: usize = 200;
 
 // Session-change codes for WM_WTSSESSION_CHANGE and power events for WM_POWERBROADCAST.
@@ -62,6 +64,9 @@ struct App {
     icon_size: i32,
     shown_look: Option<Look>,
     shown_tip: String,
+    /// The big on-screen shrimp that appears when you ignore the tray one.
+    popout: Option<Popout>,
+    pops_out: bool,
 }
 
 thread_local! {
@@ -129,6 +134,8 @@ pub fn run() {
             icon_size: 0,
             shown_look: None,
             shown_tip: String::new(),
+            popout: Popout::new(hwnd, instance),
+            pops_out: settings::pops_out(),
         };
         APP.with(|slot| *slot.borrow_mut() = Some(app));
 
@@ -181,6 +188,9 @@ impl App {
             WM_DISPLAYCHANGE | WM_SETTINGCHANGE | WM_DPICHANGED => {
                 // The tray icon size may have changed; redraw at the new size.
                 self.shown_look = None;
+                if let Some(popout) = &mut self.popout {
+                    popout.invalidate();
+                }
                 self.refresh();
             }
             WM_DESTROY => unsafe { PostQuitMessage(0) },
@@ -271,6 +281,14 @@ impl App {
         if !old_icon.is_null() {
             unsafe { DestroyIcon(old_icon) };
         }
+
+        if let Some(popout) = &mut self.popout {
+            if self.pops_out && self.shrimp.wants_attention(now) && !popout::screen_is_busy() {
+                popout.show(look);
+            } else {
+                popout.hide();
+            }
+        }
     }
 
     fn build_menu(&self) -> HMENU {
@@ -316,6 +334,13 @@ impl App {
             append(menu, MF_POPUP, intervals as usize, "Remind me every");
             let paused = if self.shrimp.paused() { MF_CHECKED } else { 0 };
             append(menu, MF_STRING | paused, CMD_PAUSE, "Pause reminders");
+            let pops_out = if self.pops_out { MF_CHECKED } else { 0 };
+            append(
+                menu,
+                MF_STRING | pops_out,
+                CMD_POP_OUT,
+                "Pop out when ignored",
+            );
             let autostart = if settings::starts_with_windows() {
                 MF_CHECKED
             } else {
@@ -338,6 +363,10 @@ impl App {
         match cmd {
             CMD_ACK => self.shrimp.acknowledge(now),
             CMD_PAUSE => self.shrimp.set_paused(!self.shrimp.paused(), now),
+            CMD_POP_OUT => {
+                self.pops_out = !self.pops_out;
+                settings::set_pops_out(self.pops_out);
+            }
             CMD_AUTOSTART => settings::set_starts_with_windows(!settings::starts_with_windows()),
             CMD_QUIT => unsafe {
                 // Close via the message queue so WM_DESTROY isn't handled re-entrantly.

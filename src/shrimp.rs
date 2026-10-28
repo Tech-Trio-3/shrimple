@@ -13,6 +13,9 @@ pub const ANGER_RAMP: Duration = Duration::from_secs(9 * 60);
 pub const MAX_ANGER: u8 = 6;
 /// Anger level at which the seaweed behind the shrimp bursts into flames.
 pub const FLAME_ANGER: u8 = 3;
+/// How long a check can be ignored before the shrimp climbs out of the tray
+/// and onto the screen (if pop-outs are turned on).
+pub const POP_OUT_DELAY: Duration = ANGER_DELAY;
 /// How long the shrimp looks pleased after being acknowledged.
 pub const HAPPY_TIME: Duration = Duration::from_secs(3);
 
@@ -105,6 +108,11 @@ impl Shrimp {
             return None;
         }
         self.elapsed(now).checked_sub(self.interval)
+    }
+
+    /// Whether the shrimp is mad enough to climb out of the tray and onto the screen.
+    pub fn wants_attention(&self, now: Instant) -> bool {
+        self.overdue(now).is_some_and(|d| d >= POP_OUT_DELAY)
     }
 
     pub fn look(&self, now: Instant) -> Look {
@@ -210,6 +218,20 @@ mod tests {
         }
         assert_eq!(last, MAX_ANGER);
         assert_eq!(s.look(due + ANGER_DELAY + ANGER_RAMP).anger, MAX_ANGER);
+    }
+
+    #[test]
+    fn pops_out_once_angry() {
+        let (mut s, t0) = setup();
+        let due = t0 + 20 * MIN;
+        assert!(!s.wants_attention(due));
+        assert!(!s.wants_attention(due + POP_OUT_DELAY - Duration::from_secs(1)));
+        assert!(s.wants_attention(due + POP_OUT_DELAY));
+        assert!(s.look(due + POP_OUT_DELAY).anger >= 1);
+        s.acknowledge(due + 5 * MIN);
+        assert!(!s.wants_attention(due + 5 * MIN));
+        s.set_paused(true, due + 5 * MIN);
+        assert!(!s.wants_attention(due + 100 * MIN));
     }
 
     #[test]

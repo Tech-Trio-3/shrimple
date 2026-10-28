@@ -11,6 +11,8 @@ mod shrimp;
 mod sprite;
 
 #[cfg(windows)]
+mod popout;
+#[cfg(windows)]
 mod settings;
 #[cfg(windows)]
 mod tray;
