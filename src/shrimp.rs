@@ -107,6 +107,12 @@ impl Shrimp {
         self.elapsed(now).checked_sub(self.interval)
     }
 
+    /// Whether the shrimp is mad enough to climb out of the tray and onto the
+    /// screen: once the seaweed has caught fire.
+    pub fn wants_attention(&self, now: Instant) -> bool {
+        self.look(now).anger >= FLAME_ANGER
+    }
+
     pub fn look(&self, now: Instant) -> Look {
         if self.paused {
             return Look::CALM;
@@ -210,6 +216,23 @@ mod tests {
         }
         assert_eq!(last, MAX_ANGER);
         assert_eq!(s.look(due + ANGER_DELAY + ANGER_RAMP).anger, MAX_ANGER);
+    }
+
+    #[test]
+    fn pops_out_once_on_fire() {
+        let (mut s, t0) = setup();
+        let due = t0 + 20 * MIN;
+        assert!(!s.wants_attention(due));
+        assert!(!s.wants_attention(due + 4 * MIN - Duration::from_secs(1)));
+        assert!(s.wants_attention(due + 4 * MIN + Duration::from_secs(1)));
+        for secs in (0..=1200).step_by(5) {
+            let t = due + Duration::from_secs(secs);
+            assert_eq!(s.wants_attention(t), s.look(t).anger >= FLAME_ANGER);
+        }
+        s.acknowledge(due + 10 * MIN);
+        assert!(!s.wants_attention(due + 10 * MIN));
+        s.set_paused(true, due + 10 * MIN);
+        assert!(!s.wants_attention(due + 100 * MIN));
     }
 
     #[test]

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/readme/hero.svg" width="100%" alt="Shrimple: a tiny pixel-art shrimp that lives in your Windows system tray and reminds you to sit up straight. No sounds, no pop-ups, just a shrimp.">
+  <img src="./assets/readme/hero.svg" width="100%" alt="Shrimple: a tiny pixel-art shrimp that lives in your Windows system tray and reminds you to sit up straight. No sounds, no notifications, just a shrimp.">
 </p>
 
 <p align="center">
@@ -24,6 +24,12 @@ shrimp and gets steadily angrier. Sit up, click it, and it calms down.
   minutes later it leaps back up, the seaweed bursts into flames and the water
   boils orange. By about nine minutes it's bright red, has an anger vein, and
   is hopping in place.
+- **Popped out:** so you can't miss it, once the seaweed catches fire (about
+  four minutes in) a bigger shrimp climbs out of the tray and sits in the
+  bottom-right corner of your screen, growing as it gets angrier. It never steals focus,
+  and it stays in the tray while a full-screen app, game or presentation is
+  running. Click it (or the tray icon) once you've sat up straight, or
+  right-click it for the menu.
 - **Click the shrimp** once you've sat up straight. It sparkles briefly and
   starts the countdown over.
 
@@ -37,6 +43,8 @@ shrimp and gets steadily angrier. Sit up, click it, and it calms down.
 | I sat up straight | Same as left-clicking the shrimp. |
 | Remind me every | 5, 10, 15, 20, 30 or 45 minutes, or 1 or 1½ hours (default 30 minutes). Choosing one restarts the countdown. |
 | Pause reminders | The shrimp stays calm until you unpause. |
+| Pop out when ignored | Let the shrimp climb out onto your screen once the seaweed catches fire (on by default). Untick it to keep it in the tray. |
+| Always show on screen | Keep the big shrimp in the corner of your screen all the time, calm or not (off by default). |
 | Start with Windows | Launch Shrimple when you sign in. |
 | Quit | Bye, shrimp. |
 
