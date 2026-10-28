@@ -1,7 +1,7 @@
 //! Shrimple: a pixel-art shrimp that lives in the Windows system tray and
 //! eyes you suspiciously (then gets increasingly red and cranky) when it's time
 //! to check your posture. Click it to tell it you've sat up straight.
-//! 10/28/2026
+//! 10/28/20026
 
 #![cfg_attr(windows, windows_subsystem = "windows")]
 
