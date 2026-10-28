@@ -7,21 +7,23 @@
 </p>
 
 Shrimple puts a 16×16 shrimp in its own little patch of sea in your Windows
-system tray. When it's time to check your posture, the shrimp gives you a
-doubtful look. If you ignore it, it gets steadily angrier. Sit up, click it, and it calms down.
+system tray. When it's time to check your posture, the shrimp starts
+slouching, probably the way you are. If you ignore it, it curls up like a
+shrimp and gets steadily angrier. Sit up, click it, and it calms down.
 
 <p align="center">
-  <img src="./assets/readme/moods.svg" width="100%" alt="The shrimp's moods, using the real tray icon frames: calm during the countdown, doubtful when a check is due, suspicious with its arms crossed after 20 seconds, fuming by two and a half minutes, on fire around four minutes, furious by eight and a half. Clicking it makes it sparkle and starts the countdown over.">
+  <img src="./assets/readme/moods.svg" width="100%" alt="The shrimp's moods, using the real tray icon frames: calm during the countdown, craning its head forward when a check is due, slumped after 20 seconds, hunched over after a minute, curled up by two and a half minutes, on fire around four minutes, furious by eight and a half. Clicking it makes it sparkle and starts the countdown over.">
 </p>
 
 - **Calm:** the shrimp stands up straight while the timer counts down.
-- **Posture check due:** it side-eyes you with a question mark over its head,
-  as if it doesn't quite believe you're sitting up straight. After 20 seconds it
-  crosses its arms and narrows its eyes.
-- **Ignored:** after a minute it starts turning red, then its brows furrow, and the
-  seaweed wilts. A few minutes later the seaweed bursts into flames and the
-  water boils orange. By about nine minutes it's bright red, has an anger
-  vein, and is hopping in place.
+- **Posture check due:** it cranes its head forward with a question mark over
+  its head, as if it doesn't quite believe you're sitting up straight. After 20
+  seconds it slumps, its back rounding out behind it.
+- **Ignored:** after a minute it hunches over and starts turning red, and by
+  two and a half minutes it has curled right up and the seaweed wilts. A few
+  minutes later it leaps back up, the seaweed bursts into flames and the water
+  boils orange. By about nine minutes it's bright red, has an anger vein, and
+  is hopping in place.
 - **Click the shrimp** once you've sat up straight. It sparkles briefly and
   starts the countdown over.
 
@@ -74,7 +76,7 @@ Windows" uses the standard `HKCU\...\CurrentVersion\Run` entry.
 | File | What's in it |
 | --- | --- |
 | `src/sprite.rs` | The 16×16 pixel art as ASCII, plus the calm and furious palettes. The water, seabed and flames are drawn behind the shrimp. |
-| `src/shrimp.rs` | Timing for when it turns suspicious and how fast it gets angry (constants at the top). |
+| `src/shrimp.rs` | Timing for when it slumps and how fast it gets angry (constants at the top). |
 | `src/tray.rs` | The Win32 tray icon, menu and timer. |
 
 `cargo run --example preview` renders every mood, on light and dark taskbars,

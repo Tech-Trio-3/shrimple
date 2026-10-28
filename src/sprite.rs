@@ -29,47 +29,87 @@ const UPRIGHT: [&str; ART_SIZE] = [
     "...ottto.ottto..",
 ];
 
-/// Posture check due: a skeptical side-eye, as if it doesn't quite believe you.
-const DOUBTFUL: [&str; ART_SIZE] = [
+/// Posture check due: its head cranes forward, ahead of its body.
+const CRANING: [&str; ART_SIZE] = [
+    "................",
     "...a.....a......",
-    "....a.....a.....",
-    ".....a....a.....",
-    "....oooooooo....",
-    "...obbbbbbbbho..",
-    "..owebbbbbbbbho.",
-    "..owebbbbboobho.",
-    "..oeebbbbbwebbo.",
-    "..ombbbbboobmbo.",
-    "...obbbbbbbbbo..",
-    "....oossssssoo..",
-    "...l.obbbbhho...",
-    "....losssssol...",
-    ".....obbbbo.....",
-    "....otooooto....",
-    "...ottto.ottto..",
+    "....a...a.......",
+    ".....a.a........",
+    "..oooooooo......",
+    ".obbbbbbbbho....",
+    "owebbbbwebbho...",
+    "oeebbbbeebbbo...",
+    "ombbbebbbmbbo...",
+    ".obbbbbbbbbboo..",
+    "..oooooooobshho.",
+    "...l.l...osbbho.",
+    ".........osbbho.",
+    "........osbbbo..",
+    ".......otttoo...",
+    "......ottto.....",
 ];
 
-/// Still waiting: arms crossed, eyes narrowed.
-const SUSPICIOUS: [&str; ART_SIZE] = [
-    "...a........a...",
-    "....a......a....",
-    ".....a....a.....",
-    "....oooooooo....",
-    "...obbbbbbbbho..",
-    "..obbbbbbbbbbho.",
-    "..ooobbbbboobho.",
-    "..owebbbbbwebbo.",
-    "..ombbooobbbmbo.",
-    "...obbbbbbbbbo..",
-    "....oossssssoo..",
-    "...obbbohhhho...",
-    "....ossssso.....",
-    ".....obbbbo.....",
-    "....otooooto....",
-    "...ottto.ottto..",
+/// Still waiting: slumped, its back rounding out behind its head.
+const SLUMPED: [&str; ART_SIZE] = [
+    "................",
+    "................",
+    "...a............",
+    "....a..a........",
+    ".....a.a........",
+    "..oooooooo.ooo..",
+    ".obbbbbbbboshbo.",
+    "obbbbbbbbbosbbho",
+    "ooobbbbooobsbbho",
+    "owebbbbwebbsbbho",
+    "ombbbooobmbosbbo",
+    ".obbbbbbbbboosbo",
+    "..oooooooooobsbo",
+    "...l.l.l..osbbo.",
+    "........otttoo..",
+    ".......ottto....",
 ];
 
-/// Suspicion turned to anger: same crossed arms, angry brows and a squint.
+/// Getting impatient: hunched over, its back rising above its head.
+const HUNCHED: [&str; ART_SIZE] = [
+    "................",
+    "................",
+    "........ooooo...",
+    "......oosbbhhoo.",
+    ".....osbbbbbbho.",
+    ".a..osbbbbbbbbho",
+    "..aoooooooo.sbho",
+    "..obbbbbbbbosbbo",
+    ".obbbbbbbbbbosbo",
+    ".obooobbbooobsbo",
+    ".owebbbbbwebosbo",
+    ".ombbbooobbmbobo",
+    "..obbbbbbbbbo.o.",
+    "...oooooooooto..",
+    "...l.l.l.ottto..",
+    "........ootto...",
+];
+
+/// Fed up: curled right over into a shrimp, glaring at you.
+const CURLED: [&str; ART_SIZE] = [
+    "................",
+    "................",
+    ".......ooooo....",
+    ".....oosbbbhoo..",
+    "....osbbbbbbbho.",
+    "...osbbbbbbbbbho",
+    "..aooooooooobbho",
+    ".aobbbbbbbbbosbo",
+    "..obobbbbbobosbo",
+    ".obbbobbbobbosbo",
+    ".obwebbbbewbosbo",
+    ".ombbbooobbmbsbo",
+    "..oobbbbbbboosbo",
+    ".ottoooooooosbbo",
+    "ottttosssbbbbbo.",
+    ".ooooooooooooo..",
+];
+
+/// On fire: back on its feet with crossed arms, angry brows and a squint.
 const FUMING: [&str; ART_SIZE] = [
     "...a........a...",
     "....a......a....",
@@ -239,9 +279,11 @@ fn grid_of(art: &[&str; ART_SIZE]) -> [[char; ART_SIZE]; ART_SIZE] {
 fn compose(look: Look) -> [[char; ART_SIZE]; ART_SIZE] {
     let art = match look.pose {
         Pose::Upright => &UPRIGHT,
-        Pose::Doubtful => &DOUBTFUL,
-        Pose::Suspicious if look.anger >= 2 => &FUMING,
-        Pose::Suspicious => &SUSPICIOUS,
+        Pose::Doubtful => &CRANING,
+        Pose::Suspicious if look.anger >= FLAME_ANGER => &FUMING,
+        Pose::Suspicious if look.anger >= 2 => &CURLED,
+        Pose::Suspicious if look.anger >= 1 => &HUNCHED,
+        Pose::Suspicious => &SLUMPED,
     };
     let mut shrimp = grid_of(art);
 
@@ -322,12 +364,7 @@ mod tests {
     #[test]
     fn art_is_well_formed() {
         for art in [
-            &UPRIGHT,
-            &DOUBTFUL,
-            &SUSPICIOUS,
-            &FUMING,
-            &SEABED,
-            &FLAMES[0],
+            &UPRIGHT, &CRANING, &SLUMPED, &HUNCHED, &CURLED, &FUMING, &SEABED, &FLAMES[0],
             &FLAMES[1],
         ] {
             for row in art.iter() {
@@ -337,7 +374,7 @@ mod tests {
                 }
             }
         }
-        for art in [&UPRIGHT, &DOUBTFUL, &SUSPICIOUS, &FUMING] {
+        for art in [&UPRIGHT, &CRANING, &SLUMPED, &HUNCHED, &CURLED, &FUMING] {
             assert!(art.concat().contains('w'), "every pose needs an eye");
         }
     }
@@ -359,6 +396,22 @@ mod tests {
                     }
                 }
             }
+        }
+    }
+
+    #[test]
+    fn curls_up_further_until_it_catches_fire() {
+        let frames: Vec<_> = (0..=FLAME_ANGER)
+            .map(|anger| {
+                compose(Look {
+                    pose: Pose::Suspicious,
+                    anger,
+                    ..Look::CALM
+                })
+            })
+            .collect();
+        for pair in frames.windows(2) {
+            assert_ne!(pair[0], pair[1]);
         }
     }
 
