@@ -1,6 +1,6 @@
 //! Shrimple: a pixel-art shrimp that lives in the Windows system tray and
-//! curls up (then gets increasingly red and cranky) when it's time to check
-//! your posture. Click it to tell it you've sat up straight.
+//! eyes you suspiciously (then gets increasingly red and cranky) when it's time
+//! to check your posture. Click it to tell it you've sat up straight.
 
 #![cfg_attr(windows, windows_subsystem = "windows")]
 

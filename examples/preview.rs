@@ -21,17 +21,17 @@ fn main() {
             ..Look::CALM
         },
         Look {
-            pose: Pose::Slouch,
+            pose: Pose::Doubtful,
             ..Look::CALM
         },
     ];
     looks.extend((0..=MAX_ANGER).map(|anger| Look {
-        pose: Pose::Curled,
+        pose: Pose::Suspicious,
         anger,
         ..Look::CALM
     }));
     looks.push(Look {
-        pose: Pose::Curled,
+        pose: Pose::Suspicious,
         anger: MAX_ANGER,
         shake: 1,
         sparkle: false,
