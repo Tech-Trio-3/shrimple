@@ -48,9 +48,9 @@ wakes from sleep.
 
 ## Get the shrimp
 
-**Download:** every push builds `shrimple.exe` on
-[GitHub Actions](https://github.com/miles-howell/shrimple/actions/workflows/build.yml).
-Open the latest run and download the `shrimple` artifact.
+**Download:** grab `shrimple.exe` from the
+[latest release](https://github.com/miles-howell/shrimple/releases/latest).
+Every `v*` tag is built and published automatically.
 
 **Build it yourself:** install [Rust](https://rustup.rs/), then on Windows:
 
@@ -81,3 +81,19 @@ Windows" uses the standard `HKCU\...\CurrentVersion\Run` entry.
 
 `cargo run --example preview` renders every mood, on light and dark taskbars,
 to `shrimp-preview.png` on any OS. `cargo test` runs the mood and sprite tests.
+
+### Cutting a release
+
+Push a version tag from `main`:
+
+```sh
+git tag v0.1.1
+git push origin v0.1.1
+```
+
+The [build workflow](.github/workflows/build.yml) tests and builds on Windows,
+then publishes a GitHub release for the tag with `shrimple.exe` attached and
+auto-generated notes. A tag only publishes a release if the workflow file at
+that tagged commit already has the release job, so tag after merging it. Builds
+from ordinary pushes are still available as the `shrimple` artifact on the
+[Actions page](https://github.com/miles-howell/shrimple/actions/workflows/build.yml).
