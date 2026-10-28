@@ -1,15 +1,17 @@
 # Shrimple 🦐
 
-A tiny pixel-art shrimp that lives in your Windows system tray and quietly
-reminds you to check your posture. No sounds, no pop-ups, no notifications:
+A tiny pixel-art shrimp that lives in your Windows system tray, in its own
+little patch of sea, and quietly reminds you to check your posture. No sounds, no pop-ups, no notifications:
 just a shrimp.
 
 ![The shrimp's moods, from calm to furious](docs/preview.png)
 
 - **Calm:** the shrimp stands up straight while the timer counts down.
 - **Posture check due:** it slouches, then curls up into a ball.
-- **Ignored:** after a minute it starts turning red, then glaring. About ten
-  minutes in, it's bright red, has an anger vein, and is hopping in place.
+- **Ignored:** after a minute it starts turning red, then glaring, and the
+  seaweed behind it wilts. A few minutes later the seaweed bursts into
+  flames and the water starts to boil orange. About ten minutes in, it's bright red, has an anger vein, and is
+  hopping in place.
 - **Click the shrimp** once you've sat up straight. It sparkles briefly and
   starts the countdown over.
 
@@ -53,10 +55,10 @@ Windows" uses the standard `HKCU\...\CurrentVersion\Run` entry.
 ## Hacking on the shrimp
 
 - `src/sprite.rs`: the 16×16 pixel art, as ASCII, plus the calm and furious
-  color palettes.
+  color palettes. The water, seabed and flames are drawn behind the shrimp.
 - `src/shrimp.rs`: timing for when it curls up and how fast it gets angry
   (constants at the top).
 - `src/tray.rs`: the Win32 tray icon, menu and timer.
 
-`cargo run --example preview` renders every mood to `shrimp-preview.png` on
-any OS. `cargo test` runs the mood and sprite tests.
+`cargo run --example preview` renders every mood, on light and dark taskbars,
+to `shrimp-preview.png` on any OS. `cargo test` runs the mood and sprite tests.

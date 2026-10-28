@@ -1,7 +1,7 @@
 //! Hand-drawn 16x16 pixel art for the shrimp, plus a renderer that recolors it
 //! by mood and scales it (nearest-neighbor, so it stays crisp) to any icon size.
 
-use crate::shrimp::{Look, Pose, MAX_ANGER};
+use crate::shrimp::{Look, Pose, FLAME_ANGER, MAX_ANGER};
 
 pub const ART_SIZE: usize = 16;
 
@@ -66,6 +66,70 @@ const CURLED: [&str; ART_SIZE] = [
     "................",
 ];
 
+// The world behind the shrimp, so it stands out against any taskbar. The top
+// right corner stays clear for the vein and sparkle.
+//   d  sand               p  pebble
+//   g  seaweed            k  seaweed shadow
+//   r  flame edge         f  flame           y  flame core
+//   v  shallow water      u  deep water      c  bubble
+const SEABED: [&str; ART_SIZE] = [
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    "..............g.",
+    ".............gk.",
+    ".............g..",
+    "............kg..",
+    ".............gg.",
+    "..............gk",
+    "g.............g.",
+    "gk...........gk.",
+    ".g...........g..",
+    "kgd.......d.kgdd",
+    "ddddpdddddddpddd",
+];
+
+const FLAMES: [[&str; ART_SIZE]; 2] = [
+    [
+        "......r.........",
+        "......rr........",
+        ".....rfr..r.....",
+        "r....rfyr.rr....",
+        "rr..rfyfr.rfr...",
+        "rfr.rfyfrrffr..r",
+        "rfr..........rfr",
+        "ryfr..........fr",
+        "ryfr............",
+        "rfyr............",
+        "rfyr............",
+        "ryfr............",
+        "rffr............",
+        "rffr.........r..",
+        "prfr........rfrr",
+        "pprrrrrrrrrrrrpp",
+    ],
+    [
+        ".......r........",
+        "......rr........",
+        "......rfr.r.....",
+        ".....rfyr.rr....",
+        "r....rfyfrrfr...",
+        "rr..rfyyfrffr.r.",
+        "rfr..........rrr",
+        "rffr..........ff",
+        "ryfr............",
+        "ryfr............",
+        "rfyr............",
+        "rfyr............",
+        "ryfr............",
+        "rffr..........r.",
+        "prfr.........rfr",
+        "pprrrrrrrrrrrrpp",
+    ],
+];
+
 /// Anger vein, drawn in the top-right corner when the shrimp is really mad.
 const VEIN: [&str; 5] = [
     ".x.x.", //
@@ -98,7 +162,22 @@ const PALETTE: &[(char, Rgba, Rgba)] = &[
     ('w', [255, 255, 255, 255], [255, 220, 80, 255]),
     ('x', [235, 24, 24, 255], [235, 24, 24, 255]),
     ('*', [255, 236, 120, 255], [255, 236, 120, 255]),
+    ('d', [222, 184, 112, 255], [92, 70, 58, 255]),
+    ('p', [168, 138, 92, 255], [56, 40, 36, 255]),
+    ('g', [64, 176, 92, 255], [150, 140, 60, 255]),
+    ('k', [30, 112, 64, 255], [100, 84, 40, 255]),
+    ('r', [214, 52, 20, 255], [214, 52, 20, 255]),
+    ('f', [255, 140, 24, 255], [255, 140, 24, 255]),
+    ('y', [255, 226, 80, 255], [255, 226, 80, 255]),
+    // Faint, see-through water that warms up as the shrimp boils over.
+    ('v', [120, 200, 240, 70], [255, 150, 90, 70]),
+    ('u', [60, 140, 220, 90], [220, 80, 50, 90]),
+    ('c', [220, 245, 255, 200], [255, 220, 180, 200]),
 ];
+
+/// Where the water turns deep, and where the bubbles float.
+const DEEP_WATER_ROW: usize = 8;
+const BUBBLES: [(usize, usize); 2] = [(1, 7), (0, 9)];
 
 fn color(c: char, anger: f32) -> Rgba {
     let Some(&(_, calm, mad)) = PALETTE.iter().find(|(k, _, _)| *k == c) else {
@@ -111,6 +190,16 @@ fn color(c: char, anger: f32) -> Rgba {
     out
 }
 
+fn grid_of(art: &[&str; ART_SIZE]) -> [[char; ART_SIZE]; ART_SIZE] {
+    let mut grid = [['.'; ART_SIZE]; ART_SIZE];
+    for (y, row) in art.iter().enumerate() {
+        for (x, c) in row.chars().enumerate() {
+            grid[y][x] = c;
+        }
+    }
+    grid
+}
+
 /// Builds the 16x16 grid of legend characters for a given look.
 fn compose(look: Look) -> [[char; ART_SIZE]; ART_SIZE] {
     let art = match look.pose {
@@ -118,19 +207,48 @@ fn compose(look: Look) -> [[char; ART_SIZE]; ART_SIZE] {
         Pose::Slouch => &SLOUCH,
         Pose::Curled => &CURLED,
     };
-    let mut grid = [['.'; ART_SIZE]; ART_SIZE];
-    for (y, row) in art.iter().enumerate() {
-        for (x, c) in row.chars().enumerate() {
-            grid[y][x] = c;
-        }
-    }
+    let mut shrimp = grid_of(art);
 
     if look.anger >= 2 {
         // Angry glare: the top half of the eye gets a heavy lid.
-        if let Some((wx, wy)) = find(&grid, 'w') {
-            grid[wy][wx] = 'o';
-            grid[wy][wx + 1] = 'o';
-            grid[wy + 1][wx] = 'w';
+        if let Some((wx, wy)) = find(&shrimp, 'w') {
+            shrimp[wy][wx] = 'o';
+            shrimp[wy][wx + 1] = 'o';
+            shrimp[wy + 1][wx] = 'w';
+        }
+    }
+
+    // Only the shrimp hops; the scenery stays put.
+    let shift = (look.shake.unsigned_abs() as usize).min(ART_SIZE);
+    for row in shrimp.iter_mut().filter(|_| shift > 0) {
+        if look.shake > 0 {
+            row.rotate_right(shift);
+            row[..shift].fill('.');
+        } else {
+            row.rotate_left(shift);
+            row[ART_SIZE - shift..].fill('.');
+        }
+    }
+
+    let mut grid = if look.anger >= FLAME_ANGER {
+        grid_of(&FLAMES[look.flicker as usize])
+    } else {
+        grid_of(&SEABED)
+    };
+    for (y, row) in grid.iter_mut().enumerate() {
+        let water = if y < DEEP_WATER_ROW { 'v' } else { 'u' };
+        for c in row.iter_mut().filter(|c| **c == '.') {
+            *c = water;
+        }
+    }
+    for (x, y) in BUBBLES {
+        grid[y][x] = 'c';
+    }
+    for (row, shrimp_row) in grid.iter_mut().zip(&shrimp) {
+        for (c, &s) in row.iter_mut().zip(shrimp_row) {
+            if s != '.' {
+                *c = s;
+            }
         }
     }
 
@@ -148,17 +266,6 @@ fn compose(look: Look) -> [[char; ART_SIZE]; ART_SIZE] {
                     grid[y][ART_SIZE - 5 + x] = c;
                 }
             }
-        }
-    }
-
-    let shift = (look.shake.unsigned_abs() as usize).min(ART_SIZE);
-    for row in grid.iter_mut().filter(|_| shift > 0) {
-        if look.shake > 0 {
-            row.rotate_right(shift);
-            row[..shift].fill('.');
-        } else {
-            row.rotate_left(shift);
-            row[ART_SIZE - shift..].fill('.');
         }
     }
     grid
@@ -191,13 +298,15 @@ mod tests {
 
     #[test]
     fn art_is_well_formed() {
-        for art in [&UPRIGHT, &SLOUCH, &CURLED] {
+        for art in [&UPRIGHT, &SLOUCH, &CURLED, &SEABED, &FLAMES[0], &FLAMES[1]] {
             for row in art.iter() {
                 assert_eq!(row.chars().count(), ART_SIZE, "{row:?}");
                 for c in row.chars() {
                     assert!(c == '.' || PALETTE.iter().any(|p| p.0 == c), "{c:?}");
                 }
             }
+        }
+        for art in [&UPRIGHT, &SLOUCH, &CURLED] {
             assert!(art.concat().contains('w'), "every pose needs an eye");
         }
     }
@@ -206,12 +315,13 @@ mod tests {
     fn renders_every_look_at_common_sizes() {
         for pose in [Pose::Upright, Pose::Slouch, Pose::Curled] {
             for anger in 0..=MAX_ANGER {
-                for shake in [0, 1] {
+                for (shake, flicker) in [(0, false), (1, true)] {
                     let look = Look {
                         pose,
                         anger,
                         shake,
                         sparkle: false,
+                        flicker,
                     };
                     for size in [16, 20, 24, 32, 48] {
                         assert_eq!(render(look, size).len(), size * size);

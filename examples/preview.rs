@@ -1,5 +1,6 @@
-//! Renders a contact sheet of every shrimp mood to `shrimp-preview.png`, so the
-//! art can be checked on any platform: `cargo run --example preview`.
+//! Renders a contact sheet of every shrimp mood, on a light and a dark taskbar,
+//! to `shrimp-preview.png`, so the art can be checked on any platform:
+//! `cargo run --example preview`.
 
 #[path = "../src/shrimp.rs"]
 #[allow(dead_code)]
@@ -34,21 +35,33 @@ fn main() {
         anger: MAX_ANGER,
         shake: 1,
         sparkle: false,
+        flicker: true,
     });
 
+    // Windows 11's light and dark taskbar colors.
+    const TASKBARS: [[u8; 4]; 2] = [[0xEE, 0xEE, 0xEE, 255], [0x20, 0x20, 0x20, 255]];
     let width = looks.len() * (CELL + GAP) + GAP;
-    let height = CELL + 2 * GAP;
-    let mut img = vec![0xEEu8; width * height * 4];
-    for (i, look) in looks.iter().enumerate() {
-        let pixels = sprite::render(*look, CELL);
-        for y in 0..CELL {
-            for x in 0..CELL {
-                let [r, g, b, a] = pixels[y * CELL + x];
-                if a == 0 {
-                    continue;
+    let row_height = CELL + 2 * GAP;
+    let height = TASKBARS.len() * row_height;
+    let mut img = vec![0u8; width * height * 4];
+    for (t, taskbar) in TASKBARS.iter().enumerate() {
+        for px in
+            img[t * row_height * width * 4..(t + 1) * row_height * width * 4].chunks_exact_mut(4)
+        {
+            px.copy_from_slice(taskbar);
+        }
+        for (i, look) in looks.iter().enumerate() {
+            let pixels = sprite::render(*look, CELL);
+            for y in 0..CELL {
+                for x in 0..CELL {
+                    let [r, g, b, a] = pixels[y * CELL + x];
+                    let at = ((t * row_height + GAP + y) * width + GAP + i * (CELL + GAP) + x) * 4;
+                    for (dst, src) in img[at..at + 3].iter_mut().zip([r, g, b]) {
+                        let blended =
+                            (src as u32 * a as u32 + *dst as u32 * (255 - a as u32)) / 255;
+                        *dst = blended as u8;
+                    }
                 }
-                let at = ((GAP + y) * width + GAP + i * (CELL + GAP) + x) * 4;
-                img[at..at + 4].copy_from_slice(&[r, g, b, 255]);
             }
         }
     }
