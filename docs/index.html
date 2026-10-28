@@ -1,0 +1,920 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shrimple</title>
+<meta name="description" content="A tiny pixel-art shrimp that lives in your Windows system tray and reminds you to sit up straight.">
+<link rel="icon" id="favicon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #3A1716;
+    --ink-soft: #7A5A55;
+    --outline: #5C201E;
+    --shrimp: #FF8E6C;
+    --sea-top: #E9F6FC;
+    --sea-bottom: #B9E0F5;
+    --sand: #DEB870;
+    --pebble: #A88A5C;
+    --tile: #F4FAFD;
+    --card: rgba(255, 255, 255, 0.6);
+    --card-line: rgba(92, 32, 30, 0.12);
+    --hot: #E4201A;
+    --pixel: "Silkscreen", ui-monospace, SFMono-Regular, Consolas, Menlo, monospace;
+    --body: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Consolas, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #FBE9E4;
+      --ink-soft: #C7A9A2;
+      --outline: #FFB49C;
+      --sea-top: #0B2233;
+      --sea-bottom: #12405C;
+      --tile: #1A3A50;
+      --card: rgba(8, 24, 36, 0.55);
+      --card-line: rgba(255, 180, 156, 0.16);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #FBE9E4;
+    --ink-soft: #C7A9A2;
+    --outline: #FFB49C;
+    --sea-top: #0B2233;
+    --sea-bottom: #12405C;
+    --tile: #1A3A50;
+    --card: rgba(8, 24, 36, 0.55);
+    --card-line: rgba(255, 180, 156, 0.16);
+  }
+
+  * { box-sizing: border-box; }
+  html { background: var(--sea-bottom); }
+  body {
+    margin: 0;
+    color: var(--ink);
+    font: 17px/1.6 var(--body);
+    background: linear-gradient(var(--sea-top), var(--sea-bottom)) fixed;
+    min-height: 100vh;
+    transition: background-color 1s;
+  }
+  body::before {
+    /* Warms the whole sea up as the shrimp boils over. */
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at 50% 30%, rgba(255, 90, 40, 0.35), rgba(200, 20, 10, 0.25));
+    opacity: var(--heat, 0);
+    transition: opacity 1.2s;
+    z-index: -1;
+  }
+  a { color: inherit; }
+  main { max-width: 880px; margin: 0 auto; padding: 0 16px; }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 40px;
+    align-items: center;
+    padding: 64px 0 48px;
+  }
+  .eyebrow {
+    font: 700 13px/1 var(--mono);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--outline);
+    opacity: 0.75;
+    margin: 0 0 18px;
+  }
+  h1 {
+    font: 700 clamp(48px, 9vw, 84px)/0.95 var(--pixel);
+    color: var(--shrimp);
+    text-shadow: 4px 4px 0 var(--outline);
+    margin: 0 0 24px;
+    letter-spacing: 0.02em;
+  }
+  .lede { font-size: 22px; font-weight: 600; margin: 0 0 6px; }
+  .sublede { color: var(--ink-soft); margin: 0 0 28px; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn {
+    display: inline-block;
+    font: 700 15px/1 var(--pixel);
+    text-decoration: none;
+    padding: 14px 18px;
+    border: 3px solid var(--outline);
+    box-shadow: 4px 4px 0 var(--outline);
+    background: var(--shrimp);
+    color: #3A1716;
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  .btn:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--outline); }
+  .btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--outline); }
+  .btn.ghost { background: var(--card); color: var(--ink); }
+
+  /* ---------- The live shrimp ---------- */
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 320px; }
+  .speech {
+    position: relative;
+    min-height: 52px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 10px 14px;
+    font: 700 15px/1.25 var(--pixel);
+    background: #FFFFFF;
+    color: #3A1716;
+    border: 3px solid var(--outline);
+    box-shadow: 4px 4px 0 var(--outline);
+  }
+  .speech::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -14px;
+    width: 14px;
+    height: 14px;
+    background: #FFFFFF;
+    border-right: 3px solid var(--outline);
+    border-bottom: 3px solid var(--outline);
+    transform: translateX(-50%) rotate(45deg);
+  }
+  .speech.pop { animation: pop 0.25s ease-out; }
+  .speech.yell { color: var(--hot); }
+  @keyframes pop { from { transform: scale(0.85); } to { transform: scale(1); } }
+
+  .tank {
+    border: 0;
+    padding: 0;
+    margin: 6px 0 0;
+    background: var(--tile);
+    width: 288px;
+    height: 288px;
+    border-radius: 12px;
+    box-shadow: 0 0 0 4px var(--outline), 8px 10px 0 4px rgba(92, 32, 30, 0.22);
+    cursor: pointer;
+    overflow: hidden;
+    animation: float 3.2s ease-in-out infinite;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tank:focus-visible { outline: 4px dashed var(--shrimp); outline-offset: 8px; }
+  .tank canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+  .tank.mad { animation: rattle 0.35s linear infinite; }
+  .tank.furious { animation: rattle 0.12s linear infinite; }
+  .tank.boop { animation: boop 0.3s ease-out; }
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  @keyframes rattle {
+    0%, 100% { transform: translate(0, 0) rotate(0); }
+    25% { transform: translate(-2px, 1px) rotate(-0.6deg); }
+    75% { transform: translate(2px, -1px) rotate(0.6deg); }
+  }
+  @keyframes boop { 0% { transform: scale(0.92); } 60% { transform: scale(1.04); } 100% { transform: scale(1); } }
+
+  .meter { width: 100%; }
+  .meter-bar {
+    height: 14px;
+    border: 3px solid var(--outline);
+    background: var(--card);
+    overflow: hidden;
+  }
+  .meter-fill { height: 100%; width: 0; background: #40B05C; transition: background-color 0.4s; }
+  .meter-label {
+    display: flex;
+    justify-content: space-between;
+    font: 400 12px/1 var(--pixel);
+    color: var(--ink-soft);
+    margin-top: 8px;
+  }
+  /* Once the big tank scrolls away, Shrimple swims along in the corner. */
+  .buddy {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 14px;
+    pointer-events: none;
+    transform: translateY(calc(100% + 40px));
+    transition: transform 0.5s cubic-bezier(0.34, 1.4, 0.64, 1);
+  }
+  .buddy.show { transform: none; translate: 0 var(--drag, 0px); }
+  .buddy > * { pointer-events: auto; }
+  .buddy .tank {
+    width: 96px;
+    height: 96px;
+    margin: 0;
+    border-radius: 10px;
+    box-shadow: 0 0 0 3px var(--outline), 5px 6px 0 3px rgba(92, 32, 30, 0.22);
+  }
+  .buddy .speech {
+    width: auto;
+    max-width: min(240px, calc(100vw - 32px));
+    min-height: 0;
+    font-size: 13px;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none;
+  }
+  .buddy .speech::after { left: auto; right: 34px; transform: rotate(45deg); }
+  .buddy .speech.show { opacity: 1; transform: none; }
+  .hint { font-size: 14px; color: var(--ink-soft); text-align: center; margin: 0; }
+
+  /* ---------- Sections ---------- */
+  section { padding: 40px 0; }
+  h2 {
+    font: 700 26px/1.1 var(--pixel);
+    color: var(--outline);
+    margin: 0 0 16px;
+  }
+  p { margin: 0 0 14px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--card-line);
+    border-radius: 16px;
+    padding: 24px;
+  }
+
+  .moods {
+    list-style: none;
+    padding: 0;
+    margin: 24px 0 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+    gap: 16px;
+  }
+  .moods li { text-align: center; }
+  .moods canvas {
+    width: 96px;
+    height: 96px;
+    image-rendering: pixelated;
+    background: var(--tile);
+    border-radius: 12px;
+    box-shadow: 0 0 0 3px var(--outline);
+  }
+  .moods strong { display: block; font: 700 13px/1.2 var(--pixel); margin-top: 10px; }
+  .moods span { display: block; font-size: 13px; color: var(--ink-soft); line-height: 1.35; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--card-line); vertical-align: top; }
+  th { font: 700 12px/1 var(--pixel); color: var(--ink-soft); }
+  td:first-child { font-weight: 600; white-space: nowrap; }
+
+  pre {
+    background: #1E1412;
+    color: #FBE9E4;
+    padding: 14px 16px;
+    border-radius: 10px;
+    overflow-x: auto;
+    font: 14px/1.5 var(--mono);
+  }
+  code { font-family: var(--mono); font-size: 0.92em; }
+
+  footer {
+    text-align: center;
+    padding: 40px 16px 0;
+    font: 400 13px/1.6 var(--pixel);
+    color: var(--ink-soft);
+  }
+  .seabed {
+    height: 28px;
+    margin-top: 32px;
+    background:
+      linear-gradient(90deg, transparent 0 calc(100% - 14px), var(--pebble) calc(100% - 14px)) 0 0 / 112px 14px repeat-x,
+      var(--sand);
+    border-top: 4px solid var(--pebble);
+  }
+
+  @media (max-width: 720px) {
+    .hero { grid-template-columns: 1fr; padding-top: 40px; gap: 32px; }
+    .stage { margin: 0 auto; width: min(320px, 100%); order: -1; }
+    .tank { width: min(288px, 80vw); height: min(288px, 80vw); }
+    td:first-child { white-space: normal; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tank, .tank.mad, .tank.furious, .tank.boop, .speech.pop { animation: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Windows system tray · posture reminder</p>
+      <h1>Shrimple</h1>
+      <p class="lede">A tiny shrimp that reminds you to sit up straight.</p>
+      <p class="sublede">No sounds. No pop-ups. Just a shrimp in your tray, slouching the way you are and getting steadily angrier about it.</p>
+      <div class="buttons">
+        <a class="btn" href="https://github.com/miles-howell/shrimple/releases/latest">Download for Windows</a>
+        <a class="btn ghost" href="https://github.com/miles-howell/shrimple">View on GitHub</a>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="speech" id="speech" aria-live="polite">Hi! I'm Shrimple.</div>
+      <button class="tank" id="tank" type="button" aria-label="Shrimple, the posture shrimp. Click when you've sat up straight.">
+        <canvas id="shrimp" width="16" height="16"></canvas>
+      </button>
+      <div class="meter" aria-hidden="true">
+        <div class="meter-bar"><div class="meter-fill" id="meter"></div></div>
+        <div class="meter-label"><span id="meter-text">next check in 8s</span><span id="score"></span></div>
+      </div>
+      <p class="hint">Sit up straight, then click the shrimp.</p>
+    </div>
+  </header>
+
+  <section>
+    <h2>How it works</h2>
+    <div class="card">
+      <p>Shrimple puts a 16×16 shrimp in its own little patch of sea in your Windows system tray. When it's time to check your posture, the shrimp starts slouching, probably the way you are.</p>
+      <p>Ignore it and it curls up like a shrimp and gets steadily angrier. Sit up, click it, and it calms down.</p>
+      <ul class="moods" id="moods"></ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Using it</h2>
+    <div class="card">
+      <p><strong>Hover</strong> over the shrimp to see how long until the next check. <strong>Left-click</strong> it when you've sat up straight. <strong>Right-click</strong> for the menu:</p>
+      <table>
+        <thead><tr><th>Menu item</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td>I sat up straight</td><td>Same as left-clicking the shrimp.</td></tr>
+          <tr><td>Remind me every</td><td>5, 10, 15, 20, 30 or 45 minutes, or 1 or 1½ hours (default 30 minutes).</td></tr>
+          <tr><td>Pause reminders</td><td>The shrimp stays calm until you unpause.</td></tr>
+          <tr><td>Start with Windows</td><td>Launch Shrimple when you sign in.</td></tr>
+          <tr><td>Quit</td><td>Bye, shrimp.</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:18px"><strong>It won't nag an empty chair.</strong> The countdown restarts on its own after 5 minutes with no keyboard or mouse input, when you unlock your PC, and when it wakes from sleep.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Get the shrimp</h2>
+    <div class="card">
+      <p>Grab <code>shrimple.exe</code> from the <a href="https://github.com/miles-howell/shrimple/releases/latest">latest release</a>, run it, and look for the shrimp in your tray. You may need to drag it out of the overflow area (<code>^</code>) so it's always visible.</p>
+      <p>Or build it yourself with <a href="https://rustup.rs/">Rust</a>:</p>
+      <pre><code>cargo build --release</code></pre>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Made with one shrimp and zero chiropractors ·
+  <a href="https://github.com/miles-howell/shrimple">github.com/miles-howell/shrimple</a>
+  <div class="seabed"></div>
+</footer>
+
+<div class="buddy" id="buddy" inert>
+  <div class="speech" id="buddy-speech" aria-hidden="true"></div>
+  <button class="tank" id="buddy-tank" type="button" aria-label="Shrimple, following you down the page. Click when you've sat up straight.">
+    <canvas id="buddy-shrimp" width="16" height="16"></canvas>
+  </button>
+</div>
+
+<script>
+// The same hand-drawn art and mood logic as src/sprite.rs and src/shrimp.rs,
+// ported so the shrimp can live on the page too.
+
+// Legend:
+//   .  transparent        o  outline           b  body
+//   h  highlight          s  shell shading     l  legs
+//   a  antennae           e  eye               w  eye shine
+//   m  blush              t  tail fan
+const UPRIGHT = [
+  "...a........a...",
+  "....a......a....",
+  ".....a....a.....",
+  "....oooooooo....",
+  "...obbbbbbbbho..",
+  "..obbbbbbbbbbho.",
+  "..owebbbbbwebho.",
+  "..oeebbbbbeebbo.",
+  "..ombbbebbbbmbo.",
+  "...obbbbbbbbbo..",
+  "....oossssssoo..",
+  "...l.obbbbhho...",
+  "....losssssol...",
+  ".....obbbbo.....",
+  "....otooooto....",
+  "...ottto.ottto..",
+];
+const CRANING = [
+  "................",
+  "...a.....a......",
+  "....a...a.......",
+  ".....a.a........",
+  "..oooooooo......",
+  ".obbbbbbbbho....",
+  "owebbbbwebbho...",
+  "oeebbbbeebbbo...",
+  "ombbbebbbmbbo...",
+  ".obbbbbbbbbboo..",
+  "..oooooooobshho.",
+  "...l.l...osbbho.",
+  ".........osbbho.",
+  "........osbbbo..",
+  ".......otttoo...",
+  "......ottto.....",
+];
+const SLUMPED = [
+  "................",
+  "................",
+  "...a............",
+  "....a..a........",
+  ".....a.a........",
+  "..oooooooo.ooo..",
+  ".obbbbbbbboshbo.",
+  "obbbbbbbbbosbbho",
+  "ooobbbbooobsbbho",
+  "owebbbbwebbsbbho",
+  "ombbbooobmbosbbo",
+  ".obbbbbbbbboosbo",
+  "..oooooooooobsbo",
+  "...l.l.l..osbbo.",
+  "........otttoo..",
+  ".......ottto....",
+];
+const HUNCHED = [
+  "................",
+  "................",
+  "........ooooo...",
+  "......oosbbhhoo.",
+  ".....osbbbbbbho.",
+  ".a..osbbbbbbbbho",
+  "..aoooooooo.sbho",
+  "..obbbbbbbbosbbo",
+  ".obbbbbbbbbbosbo",
+  ".obooobbbooobsbo",
+  ".owebbbbbwebosbo",
+  ".ombbbooobbmbobo",
+  "..obbbbbbbbbo.o.",
+  "...oooooooooto..",
+  "...l.l.l.ottto..",
+  "........ootto...",
+];
+const CURLED = [
+  "................",
+  "................",
+  ".......ooooo....",
+  ".....oosbbbhoo..",
+  "....osbbbbbbbho.",
+  "...osbbbbbbbbbho",
+  "..aooooooooobbho",
+  ".aobbbbbbbbbosbo",
+  "..obobbbbbobosbo",
+  ".obbbobbbobbosbo",
+  ".obwebbbbewbosbo",
+  ".ombbbooobbmbsbo",
+  "..oobbbbbbboosbo",
+  ".ottoooooooosbbo",
+  "ottttosssbbbbbo.",
+  ".ooooooooooooo..",
+];
+const FUMING = [
+  "...a........a...",
+  "....a......a....",
+  ".....a....a.....",
+  "....oooooooo....",
+  "...oobbbbbobho..",
+  "..obbobbbobbbho.",
+  "..obwebbbewbbho.",
+  "..obbbbbbbbbbbo.",
+  "..ombbooobbbmbo.",
+  "...obbbbbbbbbo..",
+  "....oossssssoo..",
+  "...obbbohhhho...",
+  "....ossssso.....",
+  ".....obbbbo.....",
+  "....otooooto....",
+  "...ottto.ottto..",
+];
+const SEABED = [
+  "................",
+  "................",
+  "................",
+  "................",
+  "................",
+  "..............g.",
+  ".............gk.",
+  ".............g..",
+  "............kg..",
+  ".............gg.",
+  "..............gk",
+  "g.............g.",
+  "gk...........gk.",
+  ".g...........g..",
+  "kgd.......d.kgdd",
+  "ddddpdddddddpddd",
+];
+const FLAMES = [
+  [
+    "......r.........",
+    "......rr........",
+    ".....rfr..r.....",
+    "r....rfyr.rr....",
+    "rr..rfyfr.rfr...",
+    "rfr.rfyfrrffr..r",
+    "rfr..........rfr",
+    "ryfr..........fr",
+    "ryfr............",
+    "rfyr............",
+    "rfyr............",
+    "ryfr............",
+    "rffr............",
+    "rffr.........r..",
+    "prfr........rfrr",
+    "pprrrrrrrrrrrrpp",
+  ],
+  [
+    ".......r........",
+    "......rr........",
+    "......rfr.r.....",
+    ".....rfyr.rr....",
+    "r....rfyfrrfr...",
+    "rr..rfyyfrffr.r.",
+    "rfr..........rrr",
+    "rffr..........ff",
+    "ryfr............",
+    "ryfr............",
+    "rfyr............",
+    "rfyr............",
+    "ryfr............",
+    "rffr..........r.",
+    "prfr.........rfr",
+    "pprrrrrrrrrrrrpp",
+  ],
+];
+const VEIN = [".x.x.", "xx.xx", ".....", "xx.xx", ".x.x."];
+const QUESTION = ["..qqq", "....q", "...q.", ".....", "...q."];
+const SPARKLE = ["..*..", "..*..", "**.**", "..*..", "..*.."];
+
+// Calm and fully-furious colors, per legend character.
+const PALETTE = {
+  o: [[92, 32, 30, 255], [70, 6, 6, 255]],
+  b: [[255, 142, 108, 255], [228, 32, 26, 255]],
+  h: [[255, 204, 172, 255], [255, 112, 92, 255]],
+  s: [[222, 98, 78, 255], [168, 14, 14, 255]],
+  l: [[200, 82, 66, 255], [150, 14, 14, 255]],
+  a: [[150, 62, 52, 255], [120, 18, 18, 255]],
+  e: [[24, 12, 12, 255], [24, 6, 6, 255]],
+  w: [[255, 255, 255, 255], [255, 220, 80, 255]],
+  m: [[255, 110, 130, 255], [200, 20, 40, 255]],
+  t: [[255, 176, 140, 255], [240, 70, 50, 255]],
+  q: [[70, 120, 230, 255], [70, 120, 230, 255]],
+  x: [[235, 24, 24, 255], [235, 24, 24, 255]],
+  "*": [[255, 236, 120, 255], [255, 236, 120, 255]],
+  d: [[222, 184, 112, 255], [92, 70, 58, 255]],
+  p: [[168, 138, 92, 255], [56, 40, 36, 255]],
+  g: [[64, 176, 92, 255], [150, 140, 60, 255]],
+  k: [[30, 112, 64, 255], [100, 84, 40, 255]],
+  r: [[214, 52, 20, 255], [214, 52, 20, 255]],
+  f: [[255, 140, 24, 255], [255, 140, 24, 255]],
+  y: [[255, 226, 80, 255], [255, 226, 80, 255]],
+  v: [[120, 200, 240, 70], [255, 150, 90, 70]],
+  u: [[60, 140, 220, 90], [220, 80, 50, 90]],
+  c: [[220, 245, 255, 200], [255, 220, 180, 200]],
+};
+
+const SIZE = 16;
+const DEEP_WATER_ROW = 8;
+const MAX_ANGER = 6;
+const FLAME_ANGER = 3;
+
+// The tray version waits 30 minutes, then takes ~10 more to get furious.
+// Nobody reads a web page for that long, so this shrimp is on a short fuse.
+const INTERVAL = 8000;
+const SUSPICIOUS_DELAY = 4000;
+const ANGER_DELAY = 8000;
+const ANGER_RAMP = 30000;
+const HAPPY_TIME = 1600;
+
+const grid = art => art.map(row => row.split(""));
+
+function look(elapsed) {
+  const overdue = elapsed - INTERVAL;
+  if (overdue < 0) {
+    return { pose: "upright", anger: 0, overdue, shake: 0, sparkle: elapsed < HAPPY_TIME, flicker: false };
+  }
+  const pose = overdue < SUSPICIOUS_DELAY ? "doubtful" : "suspicious";
+  const fuming = overdue - ANGER_DELAY;
+  const anger = fuming < 0 ? 0 : Math.min(MAX_ANGER, Math.floor((fuming / ANGER_RAMP) * MAX_ANGER) + 1);
+  const shake = anger === MAX_ANGER && Math.floor(overdue / 220) % 2 === 1 ? 1 : 0;
+  const flicker = anger >= FLAME_ANGER && Math.floor(overdue / 260) % 2 === 1;
+  return { pose, anger, overdue, shake, sparkle: false, flicker };
+}
+
+function artFor(l) {
+  if (l.pose === "upright") return UPRIGHT;
+  if (l.pose === "doubtful") return CRANING;
+  if (l.anger >= FLAME_ANGER) return FUMING;
+  if (l.anger >= 2) return CURLED;
+  if (l.anger >= 1) return HUNCHED;
+  return SLUMPED;
+}
+
+// Extras the tray icon doesn't have room for: blinking, facing the cursor,
+// and bubbles that rise faster the angrier it gets.
+function compose(l, { blink = false, flip = false, t = 0, bubbles = true } = {}) {
+  let shrimp = grid(artFor(l));
+  if (blink) {
+    shrimp.forEach((row, y) => {
+      if (!row.includes("w")) return;
+      row.forEach((c, x) => { if (c === "e" || c === "w") row[x] = "o"; });
+      const below = shrimp[y + 1];
+      if (below) below.forEach((c, x) => { if (c === "e") below[x] = "b"; });
+    });
+  }
+  if (flip) shrimp = shrimp.map(row => row.reverse());
+  if (l.shake) shrimp = shrimp.map(row => [".", ...row.slice(0, SIZE - 1)]);
+
+  const g = grid(l.anger >= FLAME_ANGER ? FLAMES[l.flicker ? 1 : 0] : SEABED);
+  g.forEach((row, y) => row.forEach((c, x) => {
+    if (c === ".") row[x] = y < DEEP_WATER_ROW ? "v" : "u";
+  }));
+
+  if (bubbles) {
+    const count = 2 + l.anger;
+    const speed = 900 - l.anger * 110;
+    for (let i = 0; i < count; i++) {
+      const phase = t / speed + i * (SIZE / count) + i * 0.37;
+      const y = SIZE - 2 - Math.floor(phase % (SIZE - 1));
+      const x = (i * 5 + 1 + (Math.floor(phase / 3) % 2)) % SIZE;
+      if (g[y][x] === "v" || g[y][x] === "u") g[y][x] = "c";
+    }
+  } else {
+    g[7][1] = "c";
+    g[9][0] = "c";
+  }
+
+  shrimp.forEach((row, y) => row.forEach((c, x) => { if (c !== ".") g[y][x] = c; }));
+
+  const stamp = l.sparkle ? SPARKLE
+    : l.anger >= MAX_ANGER - 2 ? VEIN
+    : l.pose === "doubtful" ? QUESTION
+    : null;
+  if (stamp) {
+    stamp.forEach((row, y) => row.split("").forEach((c, x) => {
+      if (c !== ".") g[y][SIZE - 5 + x] = c;
+    }));
+  }
+  return g;
+}
+
+function paint(canvas, g, anger) {
+  const ctx = canvas.getContext("2d");
+  const img = ctx.createImageData(SIZE, SIZE);
+  const frac = anger / MAX_ANGER;
+  g.forEach((row, y) => row.forEach((c, x) => {
+    const pair = PALETTE[c];
+    if (!pair) return;
+    const [calm, mad] = pair;
+    const i = (y * SIZE + x) * 4;
+    for (let k = 0; k < 4; k++) img.data[i + k] = Math.round(calm[k] + (mad[k] - calm[k]) * frac);
+  }));
+  ctx.putImageData(img, 0, 0);
+}
+
+// ---------- Mood strip, using the real frames ----------
+
+const MOODS = [
+  ["Calm", "Standing up straight while the timer counts down.", { pose: "upright", anger: 0 }],
+  ["Check due", "Cranes its head forward. Doesn't quite believe you.", { pose: "doubtful", anger: 0 }],
+  ["Slumped", "20 seconds later, its back rounds out.", { pose: "suspicious", anger: 0 }],
+  ["Hunched", "After a minute it starts turning red.", { pose: "suspicious", anger: 1 }],
+  ["Curled", "By 2½ minutes it's curled up and the seaweed wilts.", { pose: "suspicious", anger: 2 }],
+  ["On fire", "Around 4 minutes the seaweed bursts into flames.", { pose: "suspicious", anger: 3 }],
+  ["Furious", "By 8½ minutes: anger vein, bright red, hopping.", { pose: "suspicious", anger: 6 }],
+  ["Thanks!", "Click it once you've sat up. It sparkles.", { pose: "upright", anger: 0, sparkle: true }],
+];
+const moodList = document.getElementById("moods");
+const moodCanvases = MOODS.map(([name, desc, l]) => {
+  const li = document.createElement("li");
+  const c = document.createElement("canvas");
+  c.width = c.height = SIZE;
+  c.setAttribute("role", "img");
+  c.setAttribute("aria-label", `${name}: ${desc}`);
+  const strong = document.createElement("strong");
+  strong.textContent = name;
+  const span = document.createElement("span");
+  span.textContent = desc;
+  li.append(c, strong, span);
+  moodList.append(li);
+  return [c, { shake: 0, flicker: false, sparkle: false, ...l }];
+});
+
+// ---------- The live shrimp ----------
+
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const canvas = document.getElementById("shrimp");
+const tank = document.getElementById("tank");
+const speech = document.getElementById("speech");
+const buddy = document.getElementById("buddy");
+const buddyCanvas = document.getElementById("buddy-shrimp");
+const buddyTank = document.getElementById("buddy-tank");
+const buddySpeech = document.getElementById("buddy-speech");
+const tanks = [tank, buddyTank];
+const meter = document.getElementById("meter");
+const meterText = document.getElementById("meter-text");
+const score = document.getElementById("score");
+const favicon = document.getElementById("favicon");
+const faviconCanvas = document.createElement("canvas");
+faviconCanvas.width = faviconCanvas.height = SIZE;
+
+const LINES = {
+  calm: ["Blub.", "Just floating.", "Nice day in the tray.", "Shoulders back. Like me."],
+  thanks: ["Thank you.", "Much better.", "Look at that spine!", "Good human.", "Ahh. Perfect."],
+  early: ["I didn't even ask yet.", "Overachiever. I like it.", "Okay, keen bean."],
+  doubtful: ["Hm.", "Posture check!", "Are you… slouching?"],
+  slumped: ["Sit up, then click me.", "I'm copying you, by the way.", "This is what you look like."],
+  annoyed: ["Hello??", "I can see you slouching.", "Click. The. Shrimp."],
+  burning: ["The seaweed is ON FIRE.", "SIT UP STRAIGHT.", "Do you smell burning seaweed?"],
+  furious: ["I AM SO ANGRY.", "AAAAAAAAAAA", "CLICK ME RIGHT NOW."],
+  spam: ["Okay, okay. I get it.", "Stop poking me.", "One click is plenty."],
+  back: ["Oh, NOW you're back.", "Where did you GO?", "I waited. I boiled."],
+};
+const pick = list => list[Math.floor(Math.random() * list.length)];
+
+function moodOf(l) {
+  if (l.pose === "upright") return "calm";
+  if (l.pose === "doubtful") return "doubtful";
+  if (l.anger >= MAX_ANGER) return "furious";
+  if (l.anger >= FLAME_ANGER) return "burning";
+  if (l.anger >= 1) return "annoyed";
+  return "slumped";
+}
+
+let lastSaid = 0;
+function say(text, yell = false) {
+  if (speech.textContent === text) return;
+  lastSaid = Date.now();
+  for (const el of [speech, buddySpeech]) {
+    el.textContent = text;
+    el.classList.toggle("yell", yell);
+    el.classList.remove("pop");
+    void el.offsetWidth;
+    el.classList.add("pop");
+  }
+}
+
+let lastAck = Date.now() - HAPPY_TIME;
+let lastMood = null;
+let quietUntil = 0;
+let lookingRight = false;
+let nextBlink = Date.now() + 2500;
+let blinkUntil = 0;
+let lastFavicon = "";
+let pokes = [];
+let fixed = 0;
+try { fixed = Number(localStorage.getItem("shrimple-fixed")) || 0; } catch (e) {}
+
+function showScore() {
+  score.textContent = fixed ? `spines fixed: ${fixed}` : "";
+}
+showScore();
+
+function acknowledge(e) {
+  const now = Date.now();
+  const before = look(now - lastAck);
+  lastAck = now;
+
+  pokes = pokes.filter(p => now - p < 3000);
+  pokes.push(now);
+  if (pokes.length >= 5) {
+    say(pick(LINES.spam));
+  } else if (before.pose === "upright") {
+    say(pick(LINES.early));
+  } else {
+    say(pick(LINES.thanks));
+    fixed++;
+    try { localStorage.setItem("shrimple-fixed", fixed); } catch (e) {}
+    showScore();
+  }
+  quietUntil = now + 2200;
+  lastMood = "calm";
+
+  const clicked = e.currentTarget;
+  clicked.classList.remove("boop");
+  void clicked.offsetWidth;
+  clicked.classList.add("boop");
+}
+for (const t of tanks) {
+  t.addEventListener("click", acknowledge);
+  t.addEventListener("animationend", e => {
+    if (e.animationName === "boop") t.classList.remove("boop");
+  });
+}
+
+// It follows you down the page: when the big tank scrolls out of view,
+// Shrimple swims into the corner, and gets tugged along as you scroll.
+let following = false;
+new IntersectionObserver(([entry]) => {
+  following = !entry.isIntersecting && entry.boundingClientRect.top < 0;
+  buddy.classList.toggle("show", following);
+  buddy.inert = !following;
+}).observe(tank);
+
+let drag = 0;
+let lastScroll = scrollY;
+addEventListener("scroll", () => {
+  if (!reduceMotion) drag = Math.max(-24, Math.min(24, drag + (lastScroll - scrollY) * 0.4));
+  lastScroll = scrollY;
+}, { passive: true });
+
+// It turns to keep an eye on you.
+addEventListener("pointermove", e => {
+  const r = (following ? buddyTank : tank).getBoundingClientRect();
+  lookingRight = e.clientX > r.left + r.width / 2;
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && look(Date.now() - lastAck).anger >= FLAME_ANGER) {
+    say(pick(LINES.back), true);
+    quietUntil = Date.now() + 2500;
+  }
+});
+
+function render() {
+  const now = Date.now();
+  const elapsed = now - lastAck;
+  const l = look(elapsed);
+
+  if (now > nextBlink) {
+    blinkUntil = now + 140;
+    nextBlink = now + 2200 + Math.random() * 3000;
+  }
+  const g = compose(l, {
+    blink: now < blinkUntil && l.anger < FLAME_ANGER,
+    flip: lookingRight && l.pose !== "upright",
+    t: reduceMotion ? 0 : now,
+    bubbles: !reduceMotion,
+  });
+  paint(canvas, g, l.anger);
+  if (following) {
+    paint(buddyCanvas, g, l.anger);
+    drag *= 0.88;
+    buddy.style.setProperty("--drag", `${drag.toFixed(1)}px`);
+    buddySpeech.classList.toggle("show", now - lastSaid < 3500 || l.anger >= FLAME_ANGER);
+  }
+
+  const mood = moodOf(l);
+  if (mood !== lastMood && now > quietUntil) {
+    lastMood = mood;
+    say(pick(LINES[mood]), mood === "burning" || mood === "furious");
+  }
+
+  for (const t of tanks) {
+    t.classList.toggle("mad", l.anger >= 1 && l.anger < MAX_ANGER);
+    t.classList.toggle("furious", l.anger >= MAX_ANGER);
+  }
+  document.body.style.setProperty("--heat", (l.anger / MAX_ANGER).toFixed(2));
+
+  if (l.overdue < 0) {
+    meter.style.width = `${(elapsed / INTERVAL) * 100}%`;
+    meter.style.backgroundColor = "#40B05C";
+    meterText.textContent = `next check in ${Math.ceil(-l.overdue / 1000)}s`;
+  } else {
+    const full = Math.min(1, l.overdue / (ANGER_DELAY + ANGER_RAMP));
+    meter.style.width = `${full * 100}%`;
+    meter.style.backgroundColor = l.anger >= FLAME_ANGER ? "#E4201A" : "#FF8C18";
+    meterText.textContent = `ignored for ${Math.floor(l.overdue / 1000)}s`;
+  }
+
+  // The tab nags you too, like the tray icon would.
+  document.title = l.anger >= MAX_ANGER ? "SIT UP STRAIGHT · Shrimple"
+    : l.anger >= FLAME_ANGER ? "🔥 Shrimple is on fire"
+    : l.pose !== "upright" ? "(?) Shrimple · posture check"
+    : "Shrimple · a posture shrimp";
+  const iconKey = `${l.pose}${l.anger}${l.sparkle}${l.flicker}`;
+  if (iconKey !== lastFavicon) {
+    lastFavicon = iconKey;
+    paint(faviconCanvas, compose(l, { bubbles: false }), l.anger);
+    favicon.href = faviconCanvas.toDataURL();
+  }
+
+  for (const [c, ml] of moodCanvases) {
+    paint(c, compose({ ...ml, flicker: ml.anger >= FLAME_ANGER && Math.floor(now / 260) % 2 === 1 }, { t: reduceMotion ? 0 : now, bubbles: !reduceMotion }), ml.anger);
+  }
+
+}
+
+function tick() {
+  render();
+  requestAnimationFrame(tick);
+}
+
+// Keep the tab title and icon nagging even while the page is in the background,
+// where animation frames stop.
+setInterval(() => { if (document.hidden) render(); }, 1000);
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
